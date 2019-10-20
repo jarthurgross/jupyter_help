@@ -39,6 +39,13 @@ def display_table(rows, format_specs=None, header_entries=None, header_format_sp
     display(HTML(table_format(rows, format_specs, header_entries, header_format_specs)))
 
 def display_align(rows):
+    '''Display `sympy` expressions as a sequence of equations.
+
+    Each element of the list `rows` should be a pair whose first element is a
+    LaTeX expression signifying what the `sympy` object in the second element
+    represents.
+
+    '''
     html = r'\begin{align}'
     if isinstance(rows, dict):
         for label, expression in rows.items():

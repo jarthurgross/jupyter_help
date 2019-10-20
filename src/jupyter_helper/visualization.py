@@ -3,6 +3,9 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 
 def process_default_kwargs(kwargs, default_kwargs):
+    """Update a default kwarg dict with user-supplied values
+
+    """
     if kwargs is None:
         kwargs = {}
     for kwarg, value in default_kwargs.items():
@@ -41,8 +44,8 @@ def visualize_real_array(arr, figure_kwargs=None, matshow_kwargs=None):
     '''Visualize a real matrix.
 
     '''
-    vmin = -np.abs(arr).max()
     vmax = np.abs(arr).max()
+    vmin = -vmax
 
     default_figure_kwargs = {'figsize': (6, 4)}
     figure_kwargs = process_default_kwargs(figure_kwargs,
