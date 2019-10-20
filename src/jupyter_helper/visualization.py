@@ -93,3 +93,37 @@ def visualize_complex_array(arr, figure_kwargs=None, matshow_kwargs=None):
     cbar.set_ticks([matshow_kwargs['vmin'], 0, matshow_kwargs['vmax']])
     ax1.set_yticks([])
     return fig, [ax0, ax1, ax2]
+
+def sphere_plot_lat_long(fn, lat_count=30, long_count=60, ax=None, cmap=None,
+        plot_surface_kwargs=None, norm_kwargs=None):
+    Thetas, Phis = np.mgrid[0:np.pi:1.j*lat_count,0:2*np.pi:1.j*long_count]
+    Xs = np.sin(Thetas) * np.cos(Phis)
+    Ys = np.sin(Thetas) * np.sin(Phis)
+    Zs = np.cos(Thetas)
+    values = fn(Thetas, Phis)
+    vmax = np.abs(values).max()
+    vmin = -vmax
+
+    if cmap is None:
+        cmap = mpl.cm.RdBu
+
+    default_plot_surface_kwargs = {'rasterized': True,
+                                   'rcount': lat_count,
+                                   'ccount': long_count}
+    plot_surface_kwargs = process_default_kwargs(plot_surface_kwargs,
+                                                 default_plot_surface_kwargs)
+    default_norm_kwargs = {'vmin': vmin, 'vmax': vmax}
+    norm_kwargs = process_default_kwargs(norm_kwargs, default_norm_kwargs)
+
+    return_figax = False
+    if ax is None:
+        fig = plt.figure()
+        ax = fig.add_subplot(1, 1, 1, projection='3d')
+        return_figax = True
+    max_mag = np.abs(values).max()
+    norm = mpl.colors.Normalize(**norm_kwargs)
+    ax.plot_surface(Xs, Ys, Zs, facecolors=cmap(norm(values.real)),
+                    **plot_surface_kwargs)
+    ax.set_aspect('equal')
+    mpl.rcParams['savefig.dpi'] = 300
+    return (fig, ax) if return_figax else None
