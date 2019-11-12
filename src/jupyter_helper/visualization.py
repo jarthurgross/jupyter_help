@@ -1,3 +1,4 @@
+import itertools as it
 import numpy as np
 import matplotlib as mpl
 import matplotlib.pyplot as plt
@@ -130,3 +131,134 @@ def sphere_plot_lat_long(fn, lat_count=30, long_count=60, ax=None, cmap=None,
     ax.set_aspect('equal')
     mpl.rcParams['savefig.dpi'] = 300
     return (fig, ax) if return_figax else None
+
+def interior_convex_combs(a, b, N):
+    return [((N - n)*a + n*b)/N for n in range(1, N)]
+
+def face_interior_convex_combs(a, b, c, N):
+    return [interior_convex_combs(((N - n)*a + n*b)/N, ((N - n)*a + n*c)/N, n)
+            for n in range(2, N)]
+
+class Point:
+    def __init__(self, coords):
+        self.coords = np.array(coords)
+
+    def set_idx(self, idx):
+        self.idx = idx
+
+    def __add__(self, other):
+        return Point(self.coords + other.coords)
+
+    def __rmul__(self, other):
+        return Point(other * self.coords)
+
+    def __truediv__(self, other):
+        return Point(self.coords / other)
+
+    def __repr__(self):
+        return 'Point(' + self.coords.__repr__() + ')'
+
+    def __iter__(self):
+        return self.coords.__iter__()
+
+class Deltahedron:
+    '''A class for making refined triangulations of polyhedra
+
+    '''
+    def __init__(self, vertices, faces, N):
+        self.vertices = list(map(Point, vertices))
+        self.faces = faces
+        self.edges = []
+        for a, b, c in self.faces:
+            for pair in [[a, b], [b, c], [c, a]]:
+                if sorted(pair) not in self.edges:
+                    self.edges.append(sorted(pair))
+        self.edges_interior_points = {(a, b): interior_convex_combs(self.vertices[a],
+                                                                    self.vertices[b], N)
+                                      for a, b in self.edges}
+        self.faces_interior_points = {(a, b, c): face_interior_convex_combs(self.vertices[a],
+                                                                            self.vertices[b],
+                                                                            self.vertices[c], N)
+                                      for a, b, c in self.faces}
+        self.corner_triangles = []
+        for face in self.faces:
+            for j in range(3):
+                a = face[j]
+                b = face[(j+1)%3]
+                c = face[(j+2)%3]
+                ab = self.get_edge_from_vertex_idxs(a, b)[0]
+                ac = self.get_edge_from_vertex_idxs(a, c)[0]
+                self.corner_triangles.append([self.vertices[a], ab, ac])
+                if j == 0:
+                    self.corner_triangles.append([self.faces_interior_points[face][0][0], ab, ac])
+                if j == 1:
+                    self.corner_triangles.append([self.faces_interior_points[face][-1][0], ab, ac])
+                if j == 2:
+                    self.corner_triangles.append([self.faces_interior_points[face][-1][-1], ab, ac])
+        self.edge_triangles = []
+        for a, b, c in self.faces:
+            ab = self.get_edge_from_vertex_idxs(a, b)
+            ac = self.get_edge_from_vertex_idxs(a, c)
+            bc = self.get_edge_from_vertex_idxs(b, c)
+            for j in range(len(self.faces_interior_points[a,b,c])):
+                self.edge_triangles.append([ab[j], ab[j+1],
+                                            self.faces_interior_points[a,b,c][j][0]])
+                self.edge_triangles.append([ac[j], ac[j+1],
+                                            self.faces_interior_points[a,b,c][j][-1]])
+                self.edge_triangles.append([bc[j], bc[j+1],
+                                            self.faces_interior_points[a,b,c][-1][j]])
+            for j in range(len(self.faces_interior_points[a,b,c]) - 1):
+                self.edge_triangles.append([ab[j+1],
+                                            self.faces_interior_points[a,b,c][j][0],
+                                            self.faces_interior_points[a,b,c][j+1][0]])
+                self.edge_triangles.append([ac[j+1],
+                                            self.faces_interior_points[a,b,c][j][-1],
+                                            self.faces_interior_points[a,b,c][j+1][-1]])
+                self.edge_triangles.append([bc[j+1],
+                                            self.faces_interior_points[a,b,c][-1][j],
+                                            self.faces_interior_points[a,b,c][-1][j+1]])
+        self.face_triangles = []
+        for face in self.faces:
+            for j in range(len(self.faces_interior_points[face]) - 1):
+                for k in range(len(self.faces_interior_points[face][j])):
+                    self.face_triangles.append([self.faces_interior_points[face][j][k],
+                                                self.faces_interior_points[face][j+1][k],
+                                                self.faces_interior_points[face][j+1][k+1]])
+            for j in range(1, len(self.faces_interior_points[face]) - 1):
+                for k in range(len(self.faces_interior_points[face][j]) - 1):
+                    self.face_triangles.append([self.faces_interior_points[face][j][k],
+                                                self.faces_interior_points[face][j][k+1],
+                                                self.faces_interior_points[face][j+1][k+1]])
+
+
+    def get_edge_from_vertex_idxs(self, a, b):
+        '''Return a view of the edge oriented according to the order of the vertices given.
+
+        '''
+        if a < b:
+            return self.edges_interior_points[a,b]
+        elif a > b:
+            return self.edges_interior_points[b,a][::-1]
+        else:
+            raise ValueError
+
+    def get_triangulation(self):
+        points = it.chain(self.vertices,
+                          *it.chain(self.edges_interior_points.values()),
+                          *it.chain(*self.faces_interior_points.values()))
+        coords = []
+        for n, point in enumerate(points):
+            point.set_idx(n)
+            coords.append(point.coords)
+        triangles = [[a.idx, b.idx, c.idx] for a, b, c in it.chain(self.corner_triangles,
+                                                                   self.edge_triangles,
+                                                                   self.face_triangles)]
+        return np.array(coords), np.array(triangles)
+
+class Octahedron(Deltahedron):
+    def __init__(self, N):
+        vertices = [[1, 0, 0], [0, 1, 0], [0, 0, 1], [0, -1, 0], [0, 0, -1],
+                    [-1, 0, 0]]
+        faces = [(0, 1, 2), (0, 2, 3), (0, 3, 4), (0, 4, 1), (1, 4, 5),
+                 (2, 1, 5), (3, 2, 5), (4, 3, 5)]
+        super().__init__(vertices, faces, N)
