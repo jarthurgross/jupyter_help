@@ -255,10 +255,30 @@ class Deltahedron:
                                                                    self.face_triangles)]
         return np.array(coords), np.array(triangles)
 
+class Tetrahedron(Deltahedron):
+    def __init__(self, N):
+        A = np.sqrt(2)
+        vertices = [[-1, A, 0], [-1, -A, 0], [1, 0, A], [1, 0, -A]]
+        faces = [(0, 1, 2), (1, 2, 3), (2, 3, 0), (3, 0, 1)]
+        super().__init__(vertices, faces, N)
+
 class Octahedron(Deltahedron):
     def __init__(self, N):
         vertices = [[1, 0, 0], [0, 1, 0], [0, 0, 1], [0, -1, 0], [0, 0, -1],
                     [-1, 0, 0]]
         faces = [(0, 1, 2), (0, 2, 3), (0, 3, 4), (0, 4, 1), (1, 4, 5),
                  (2, 1, 5), (3, 2, 5), (4, 3, 5)]
+        super().__init__(vertices, faces, N)
+
+class Icosahedron(Deltahedron):
+    def __init__(self, N):
+        vertices = [[0, 1, 2], [2, 0, 1], [1, 2, 0],
+                    [0, -1, 2], [2, 0, -1], [-1, 2, 0],
+                    [0, -1, -2], [-2, 0, -1], [-1, -2, 0],
+                    [0, 1, -2], [-2, 0, 1], [1, -2, 0]]
+        faces = [(0, 3, 1), (0, 3, 10), (1, 4, 2), (1, 4, 11),
+                 (2, 5, 0), (2, 5, 9), (6, 9, 7), (6, 9, 4),
+                 (7, 10, 8), (7, 10, 5), (8, 11, 6), (8, 11, 3),
+                 (0, 1, 2), (0, 10, 5), (3, 1, 11), (3, 10, 8),
+                 (6, 7, 8), (6, 4, 11), (9, 7, 5), (9, 4, 2)]
         super().__init__(vertices, faces, N)
