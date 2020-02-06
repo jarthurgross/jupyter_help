@@ -4,6 +4,8 @@ requires = [
         'matplotlib',
         'sympy',
         'numpy',
+        'scipy',
+        'colorcet',
          ]
 
 setup(name='jupyter_helper',

@@ -2,6 +2,8 @@ import itertools as it
 import numpy as np
 import matplotlib as mpl
 import matplotlib.pyplot as plt
+from scipy.interpolate import interp1d
+import colorcet as cc
 
 def process_default_kwargs(kwargs, default_kwargs):
     """Update a default kwarg dict with user-supplied values
@@ -277,3 +279,57 @@ class Icosahedron(Deltahedron):
                  (0, 1, 2), (0, 10, 5), (3, 1, 11), (3, 10, 8),
                  (6, 7, 8), (6, 4, 11), (9, 7, 5), (9, 4, 2)]
         super().__init__(vertices, faces, N)
+
+def make_LSC_from_rgb_list(name, rgb_list):
+    rs = rgb_list[:,0]
+    gs = rgb_list[:,1]
+    bs = rgb_list[:,2]
+    xs = np.linspace(0, 1, rs.shape[0] - 1)
+    cdict = {'red': [(x, y0, y1) for x, y0, y1 in zip(xs, rs[:-1], rs[1:])],
+             'green': [(x, y0, y1) for x, y0, y1 in zip(xs, gs[:-1], gs[1:])],
+             'blue': [(x, y0, y1) for x, y0, y1 in zip(xs, bs[:-1], bs[1:])]}
+    return mpl.colors.LinearSegmentedColormap(name, cdict)
+
+def lightness(rgbas):
+    # From https://stackoverflow.com/a/596243/1236650 which references
+    # http://alienryderflex.com/hsp.html
+    A = np.array([0.299, 0.587, 0.114, 0])
+    return np.sqrt(np.tensordot(A, rgbas**2, ([0], [-1])))
+
+def linearize_divergent_cmap(name, decr_vals, middle_val, incr_vals, N=256):
+    decr_incr_vals = np.vstack([decr_vals[::-1], middle_val, incr_vals])
+    decr_lightness_diffs = np.diff(lightness(np.vstack([middle_val, decr_vals])))
+    incr_lightness_diffs = np.diff(lightness(np.vstack([middle_val, incr_vals])))
+    linearizing_xs = np.hstack([0, np.cumsum(np.hstack([decr_lightness_diffs[::-1], incr_lightness_diffs]))])
+    linear_interp = interp1d(linearizing_xs, decr_incr_vals, axis=0)
+    if lightness(decr_incr_vals[0]) > lightness(decr_incr_vals[-1]):
+        x1 = linearizing_xs[0]
+        x2 = linearizing_xs[len(decr_vals)]
+        y_star = float(lightness(decr_incr_vals[-1]))
+        y1 = float(lightness(linear_interp(x1)))
+        y2 = float(lightness(linear_interp(x2)))
+        m = (y2 - y1)/(x2 - x1)
+        x_star = (y_star - y1)/m + x1
+        linear_cmap = make_LSC_from_rgb_list(
+                name, linear_interp(np.linspace(x_star, linearizing_xs[-1], N)))
+    else:
+        x1 = linearizing_xs[len(decr_vals)]
+        x2 = linearizing_xs[-1]
+        y_star = float(lightness(decr_incr_vals[0]))
+        y1 = float(lightness(linear_interp(x1)))
+        y2 = float(lightness(linear_interp(x2)))
+        m = (y2 - y1)/(x2 - x1)
+        x_star = (y_star - y1)/m + x1
+        linear_cmap = make_LSC_from_rgb_list(
+                name, linear_interp(np.linspace(linearizing_xs[0], x_star, N)))
+    return linear_cmap
+
+kbc_vals = cc.m_kbc(np.linspace(0, 1, 256))
+kry_vals = kbc_vals[:,[2,1,0,3]]
+yrkbc = linearize_divergent_cmap('yrkbc', kry_vals, [0, 0, 0, 1], kbc_vals, N=257)
+
+def set_lut_with_cmap(surf, cmap, N=257):
+    cmap_vals = cmap(np.linspace(0, 1, N))
+    new_lut = np.round(255*cmap_vals)
+    surf.module_manager.scalar_lut_manager.lut.number_of_colors = len(cmap_vals)
+    surf.module_manager.scalar_lut_manager.lut.table = new_lut
