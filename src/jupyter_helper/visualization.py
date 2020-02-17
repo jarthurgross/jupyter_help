@@ -2,8 +2,10 @@ import itertools as it
 import numpy as np
 import matplotlib as mpl
 import matplotlib.pyplot as plt
+from mayavi import mlab
 from scipy.interpolate import interp1d
 import colorcet as cc
+import hsluv
 
 def process_default_kwargs(kwargs, default_kwargs):
     """Update a default kwarg dict with user-supplied values
@@ -333,3 +335,26 @@ def set_lut_with_cmap(surf, cmap, N=257):
     new_lut = np.round(255*cmap_vals)
     surf.module_manager.scalar_lut_manager.lut.number_of_colors = len(cmap_vals)
     surf.module_manager.scalar_lut_manager.lut.table = new_lut
+
+def plot_complex_sph_fn(normalized_points, triangles, scalars, max_L=90, dark=True):
+    angles = np.angle(scalars, deg=True)
+    frac_mags = np.abs(scalars)/np.abs(scalars).max()
+    if dark:
+        bgcolor = (.1, .1, .1)
+        fgcolor = tuple(1 - color for color in bgcolor)
+        rgbs = np.array([hsluv.hpluv_to_rgb((angle, 100, max_L*frac_mag))
+                         for angle, frac_mag in zip(angles, frac_mags)])
+    else:
+        bgcolor = None
+        fgcolor = None
+        rgbs = np.array([hsluv.hpluv_to_rgb((angle, 100, 100 - max_L*frac_mag))
+                         for angle, frac_mag in zip(angles, frac_mags)])
+    uint8_rgbs = np.round(255*rgbs).astype('uint8')
+    uint8_rgbas = np.hstack([uint8_rgbs,
+                             255*np.ones((uint8_rgbs.shape[0], 1))])
+    scalar_idxs = np.arange(len(scalars))
+    mlab.figure(bgcolor=bgcolor, fgcolor=fgcolor)
+    surf = mlab.triangular_mesh(*normalized_points.T, triangles,
+                                scalars=scalar_idxs)
+    surf.module_manager.scalar_lut_manager.lut.table = uint8_rgbas
+    return surf

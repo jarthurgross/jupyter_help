@@ -2,10 +2,12 @@ from setuptools import setup
 
 requires = [
         'matplotlib',
+        'mlab',
         'sympy',
         'numpy',
         'scipy',
         'colorcet',
+        'hsluv',
          ]
 
 setup(name='jupyter_helper',
