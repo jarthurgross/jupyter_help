@@ -2,7 +2,7 @@ from setuptools import setup
 
 requires = [
         'matplotlib',
-        'mlab',
+        'mayavi',
         'sympy',
         'numpy',
         'scipy',
