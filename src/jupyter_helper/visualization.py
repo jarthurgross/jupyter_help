@@ -360,6 +360,21 @@ def set_lut_with_cmap(surf, cmap, N=257):
     surf.module_manager.scalar_lut_manager.lut.number_of_colors = len(cmap_vals)
     surf.module_manager.scalar_lut_manager.lut.table = new_lut
 
+def plot_real_sph_fn(normalized_points, triangles, scalars, cmap=None,
+        figure_kwargs=None):
+    if cmap is None:
+        cmap = yrkbc
+    vmax = np.max(np.abs(scalars))
+    vmin = -vmax
+    default_figure_kwargs = {'bgcolor': (.1, .1, .1),
+                             'fgcolor': (.9, .9, .9)}
+    process_default_kwargs(figure_kwargs, default_figure_kwargs)
+    mlab.figure(**default_figure_kwargs)
+    surf = mlab.triangular_mesh(*normalized_points.T, triangles,
+                                scalars=scalars, vmin=vmin, vmax=vmax)
+    set_lut_with_cmap(surf, cmap)
+    return surf
+
 def plot_complex_sph_fn(normalized_points, triangles, scalars, max_L=90, dark=True):
     angles = np.angle(scalars, deg=True)
     frac_mags = np.abs(scalars)/np.abs(scalars).max()
