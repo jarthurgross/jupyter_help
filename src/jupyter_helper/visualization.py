@@ -97,6 +97,30 @@ def visualize_complex_array(arr, figure_kwargs=None, matshow_kwargs=None):
     ax1.set_yticks([])
     return fig, [ax0, ax1, ax2]
 
+def plot_complex_planar_fn(Xs, Ys, scalars, max_L=90, dark=True,
+        subplots_kwargs=None, pcolormesh_kwargs=None):
+    flat_scalars = scalars.flatten()
+    angles = np.angle(flat_scalars, deg=True)
+    frac_mags = np.abs(flat_scalars)/np.abs(scalars).max()
+    if dark:
+        rgbs = np.array([hsluv.hpluv_to_rgb((angle, 100, max_L*frac_mag))
+                         for angle, frac_mag in zip(angles, frac_mags)])
+    else:
+        rgbs = np.array([hsluv.hpluv_to_rgb((angle, 100, 100 - max_L*frac_mag))
+                         for angle, frac_mag in zip(angles, frac_mags)])
+    cmap = mpl.colors.ListedColormap(np.clip(rgbs, 0, 1))
+    Zs = np.arange(len(rgbs)).reshape(scalars.shape)
+    default_subplots_kwargs = {}
+    process_default_kwargs(subplots_kwargs, default_subplots_kwargs)
+    fig, ax = plt.subplots(**default_subplots_kwargs)
+    default_pcolormesh_kwargs = {'rasterized': True,
+                                 'shading': 'gouraud',
+                                 'cmap': cmap}
+    process_default_kwargs(pcolormesh_kwargs, default_pcolormesh_kwargs)
+    ax.pcolormesh(Xs, Ys, Zs, **default_pcolormesh_kwargs)
+    ax.set_aspect('equal')
+    return fig, ax
+
 def sphere_plot_lat_long(fn, lat_count=30, long_count=60, ax=None, cmap=None,
         plot_surface_kwargs=None, norm_kwargs=None):
     Thetas, Phis = np.mgrid[0:np.pi:1.j*lat_count,0:2*np.pi:1.j*long_count]
