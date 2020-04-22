@@ -2,6 +2,7 @@ import itertools as it
 import numpy as np
 import matplotlib as mpl
 import matplotlib.pyplot as plt
+from matplotlib.ticker import MaxNLocator
 from mayavi import mlab
 from scipy.interpolate import interp1d
 import colorcet as cc
@@ -15,6 +16,26 @@ def process_default_kwargs(kwargs, default_kwargs):
         kwargs = {}
     for kwarg, value in kwargs.items():
         default_kwargs[kwarg] = value
+
+def bar_plot(yvals, xvals=None, subplots_kwargs=None, bar_kwargs=None):
+    '''Plot an array of y values as bars wrt optional x values.
+
+    '''
+    default_subplots_kwargs = {}
+    process_default_kwargs(subplots_kwargs, default_subplots_kwargs)
+    default_bar_kwargs = {}
+    process_default_kwargs(bar_kwargs, default_bar_kwargs)
+    force_int_xticks = False
+    if xvals is None:
+        xvals = np.arange(len(yvals))
+        force_int_xticks = True
+    fig, ax = plt.subplots(**default_subplots_kwargs)
+    ax.bar(xvals, yvals)
+    if force_int_xticks:
+        # If using integer xvals, only put ticks at integer values.
+        # Adapted from <https://stackoverflow.com/a/34880501/1236650>
+        ax.xaxis.set_major_locator(MaxNLocator(integer=True))
+    return fig, ax
 
 def heat_map(arr, XY=None, figure_kwargs=None, pcolormesh_kwargs=None):
     '''Plot a heat map of the values of an array with a colorbar.
