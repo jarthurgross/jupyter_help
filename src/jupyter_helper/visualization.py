@@ -302,6 +302,14 @@ class Deltahedron:
         return np.array(coords), np.array(triangles)
 
 class Tetrahedron(Deltahedron):
+    '''Subdivided tetrahedron
+
+    Parameters
+    ----------
+    N : int
+       Number of segments into which an tetrahedron edge is divided 
+
+    '''
     def __init__(self, N):
         A = np.sqrt(2)
         vertices = [[-1, A, 0], [-1, -A, 0], [1, 0, A], [1, 0, -A]]
@@ -309,6 +317,14 @@ class Tetrahedron(Deltahedron):
         super().__init__(vertices, faces, N)
 
 class Octahedron(Deltahedron):
+    '''Subdivided octahedron
+
+    Parameters
+    ----------
+    N : int
+       Number of segments into which an octahedron edge is divided 
+
+    '''
     def __init__(self, N):
         vertices = [[1, 0, 0], [0, 1, 0], [0, 0, 1], [0, -1, 0], [0, 0, -1],
                     [-1, 0, 0]]
@@ -317,6 +333,14 @@ class Octahedron(Deltahedron):
         super().__init__(vertices, faces, N)
 
 class Icosahedron(Deltahedron):
+    '''Subdivided icosahedron
+
+    Parameters
+    ----------
+    N : int
+       Number of segments into which an icosahedral edge is divided 
+
+    '''
     def __init__(self, N):
         phi = (1 + np.sqrt(5))/2
         vertices = [[0, 1, phi], [phi, 0, 1], [1, phi, 0],
