@@ -17,7 +17,7 @@ def process_default_kwargs(kwargs, default_kwargs):
     for kwarg, value in kwargs.items():
         default_kwargs[kwarg] = value
 
-def bar_plot(yvals, xvals=None, subplots_kwargs=None, bar_kwargs=None):
+def bar_plot(yvals, xvals=None, ax=None, subplots_kwargs=None, bar_kwargs=None):
     '''Plot an array of y values as bars wrt optional x values.
 
     '''
@@ -29,13 +29,16 @@ def bar_plot(yvals, xvals=None, subplots_kwargs=None, bar_kwargs=None):
     if xvals is None:
         xvals = np.arange(len(yvals))
         force_int_xticks = True
-    fig, ax = plt.subplots(**default_subplots_kwargs)
-    ax.bar(xvals, yvals)
+    return_figax = False
+    if ax is None:
+        fig, ax = plt.subplots(**default_subplots_kwargs)
+        return_figax = True
+    ax.bar(xvals, yvals, **default_bar_kwargs)
     if force_int_xticks:
         # If using integer xvals, only put ticks at integer values.
         # Adapted from <https://stackoverflow.com/a/34880501/1236650>
         ax.xaxis.set_major_locator(MaxNLocator(integer=True))
-    return fig, ax
+    return (fig, ax) if return_figax else None
 
 def heat_map(arr, XY=None, figure_kwargs=None, pcolormesh_kwargs=None):
     '''Plot a heat map of the values of an array with a colorbar.
